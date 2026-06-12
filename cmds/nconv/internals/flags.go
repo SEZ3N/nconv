@@ -35,12 +35,15 @@ type Args struct {
 	N        string
 }
 
-func ParseFlagsAndArgs() (*Flags, *Args) {
+func ParseFlagsAndArgs() (*Flags, *Args , error) {
 	var flags Flags
 	flag.StringVar(&flags.SaveAtDir, "dir", "./", "Directory to Save the file at defaults to the current dir")
 	flag.Uint64Var(&flags.JpegQuality, "quality", 100, "Quality of Resultant Image in the range [0,100]")
 	flag.StringVar(&flags.OutputName, "out-name", "", "Optional Name of the Output File (Defaults to a Randomly Generated Name)")
 	flag.BoolVar(&flags.Quiet, "quiet", false, "If set to True Image isn't Opened by your defualt image viewer")
 	flag.Parse()
-	return &flags, &Args{flag.Arg(0), flag.Arg(1)}
+	if len(flag.Args()) != 2 {
+		return nil,nil,errors.New("Invalid Syntax")
+	}
+	return &flags, &Args{flag.Arg(0), flag.Arg(1)},nil
 }

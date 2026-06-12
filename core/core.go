@@ -1,28 +1,28 @@
 package core
-
 import (
-	"github.com/SEZ3N/nconv/utils"
 	"image"
 	"image/color"
 	"slices"
+
+	"github.com/SEZ3N/nconv/utils"
 )
 
-func GetLuminance(c color.Color) float64 {
+func getLuminance(c color.Color) float64 {
 	r, g, b, a := c.RGBA()
 	return (0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b)) / float64(a)
 }
 
-func Blend(blendFactor float64) color.Color {
-	out := color.RGBA{
-		R: uint8(float64(255) * blendFactor),
-		G: uint8(float64(255) * blendFactor),
-		B: uint8(float64(255) * blendFactor),
-		A: uint8(255),
+func LumFromCoeff(blendFactor float64) color.RGBA {
+	col := uint8(255 * blendFactor)
+	return color.RGBA{
+		R: col,
+		G: col,
+		B: col,
+		A: 255,
 	}
-	return out
 }
 
-func PickLum(picker []float64, bands []float64, lum float64) float64 {
+func PickLumCoeff(picker []float64, bands []float64, lum float64) float64 {
 	idx, _ := slices.BinarySearch(bands, lum)
 	if idx == 0 {
 		return picker[0]
@@ -41,17 +41,13 @@ func GenGreyscaleColorCoeffs(n uint) []float64 {
 	return out
 }
 
-func InitLumArray(img image.Image) [][]float64 {
-	var LumArray [][]float64
-
-	for i := 0; i <= img.Bounds().Max.X; i++ {
-		var temp []float64
-		for j := 0; j <= img.Bounds().Max.Y; j++ {
-			temp = append(temp, GetLuminance(img.At(i, j)))
-		}
-		LumArray = append(LumArray, temp)
+func InitLumArray(img image.Image) []float64 {
+	switch img.(type) {
+	case *image.YCbCr:
+		return initLumArrYCbCr(img)
+	default:
+		return initLumArrDefault(img)
 	}
-	return LumArray
 }
 
 func InitLuminanceBands(n uint, initalLum, finalLum float64) []float64 {
@@ -62,3 +58,33 @@ func InitLuminanceBands(n uint, initalLum, finalLum float64) []float64 {
 	}
 	return bands
 }
+
+func initLumArrYCbCr(img image.Image) []float64 {
+	rect := img.Bounds()
+	w,h := img.Bounds().Dx(),img.Bounds().Dy()
+	lumArray := make([]float64,w*h)
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			idx := img.(*image.YCbCr).YOffset(x, y)
+			luma := img.(*image.YCbCr).Y[idx]
+			lumArrIdx := (y - rect.Min.Y) * w + x - rect.Min.X
+			lumArray[lumArrIdx] = float64(luma)/255.00
+		}
+	}
+	return lumArray
+}
+
+func initLumArrDefault(img image.Image) []float64 {
+	rect := img.Bounds()
+	w,h := img.Bounds().Dx(),img.Bounds().Dy()
+	lumArray := make([]float64,w*h)
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			luma := getLuminance(img.At(x,y))
+			lumArrIdx := (y - rect.Min.Y) * w + x - rect.Min.X
+			lumArray[lumArrIdx] = float64(luma)/255.00
+		}
+	}
+	return lumArray
+}
+

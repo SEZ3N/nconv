@@ -1,16 +1,18 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
-	"github.com/SEZ3N/nconv"
-	"github.com/SEZ3N/nconv/cmds/nconv/internals"
 	_ "image/jpeg"
 	"os"
 	"strconv"
+	"github.com/SEZ3N/nconv"
+	"github.com/SEZ3N/nconv/cmds/nconv/internals"
 )
 
 func main() {
+
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
 		fmt.Printf("\nsyntax: nconv [options] <input_image_URL> <n_value>\n")
@@ -18,8 +20,13 @@ func main() {
 		flag.PrintDefaults()
 	}
 
-	flags, args := internals.ParseFlagsAndArgs()
+	flags, args, err  := internals.ParseFlagsAndArgs()
 
+	if err != nil {
+		internals.DisplayFomattedMessageFromErr(err)
+		flag.CommandLine.Usage()
+		return
+	}
 	if err := internals.ValidateArgs(args.ImageURL, args.N); err != nil {
 		internals.DisplayFomattedMessageFromErr(err)
 		return
@@ -37,7 +44,9 @@ func main() {
 		return
 	}
 	defer f.Close()
-	err = nconv.ConvertAndWrite(img, uint(n_value), f, int(flags.JpegQuality))
+	wr := bufio.NewWriterSize(f, 512*1024)
+	defer wr.Flush()
+	err = nconv.ConvertAndWrite(img, uint(n_value), wr, int(flags.JpegQuality))
 	if err != nil {
 		internals.DisplayFomattedMessageFromErr(err)
 		return

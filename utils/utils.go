@@ -11,24 +11,36 @@ func Abs(f float64) float64 {
 	return f
 }
 
-func MeanLuminosity(arr [][]float64) float64 {
+func MeanLuminosity(arr []float64) float64 {
 	mean := 0.0
-	n := len(arr) * len(arr[0])
-	for _, row := range arr {
-		for _, val := range row {
-			mean += val / float64(n)
-		}
+	n := len(arr)
+	for _, v := range arr {
+		mean += v
 	}
-	return mean
+	return mean / float64(n)
 }
 
-func StdDev(arr [][]float64, mean float64) float64 {
+func StdDev(arr []float64, mean float64) float64 {
 	variance := 0.0
-	n := len(arr) * len(arr[0])
-	for _, row := range arr {
-		for _, val := range row {
-			variance += math.Pow(val-mean, 2) / float64(n)
-		}
+	n := len(arr)
+	for _, v := range arr {
+		variance += (v - mean) * (v - mean)
 	}
-	return math.Sqrt(variance)
+	return math.Sqrt(variance / float64(n))
+}
+
+func CalcBounds(mean float64, stdDev float64) (lower, upper float64) {
+	upper = mean + 2*stdDev
+	lower = mean - 2*stdDev
+
+	// fallback values if values do not lie in [0,1] interval
+	if lower < 0 {
+		mean = upper
+		lower = 0
+		upper += 2 * stdDev
+	}
+	if upper > 1 {
+		upper = 1
+	}
+	return
 }

@@ -1,27 +1,36 @@
 package internals
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"image"
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"time"
 )
 
 func GetImage(imageURL string) (image.Image, error) {
-	if st, err := os.Stat(imageURL); err == nil && !st.IsDir() {
-		return resolveLocalUrl(imageURL)
-	} else if errors.Is(err, os.ErrNotExist) {
-		return nil, errors.New("File Specified doesn't Exist")
-	}
-
 	url, err := url.ParseRequestURI(imageURL)
-	if err == nil && (url.Scheme == "http" || url.Scheme == "https") {
-		return resolveHttpUrl(imageURL)
+	if err != nil {
+		return nil, errors.New("Invalid URL")
 	}
-	return nil, errors.New("Unsupported URL")
+	st,stErr := os.Stat(imageURL)
+	if stErr == nil && !st.IsDir() {
+		return resolveLocalUrl(imageURL)
+	}
+	if url.Scheme == "http" || url.Scheme == "https" {
+		return resolveHttpUrl(imageURL)
+	} 
+	match,_ := regexp.MatchString(`^(?:[a-zA-Z]:[\\/]|\\\\|/)`,imageURL)
+	if !match {
+		err = errors.New("Unsupported Protocol")
+	} else if errors.Is(stErr, os.ErrNotExist) {
+		err = errors.New("File Specified doesn't Exist")
+	}
+	return nil, err
 }
 
 func resolveLocalUrl(imageURL string) (image.Image, error) {
@@ -30,11 +39,11 @@ func resolveLocalUrl(imageURL string) (image.Image, error) {
 		return nil, err
 	}
 	defer f.Close()
-	img, form, err := image.Decode(f)
+	buf := bufio.NewReader(f)
+	img, form, err := image.Decode(buf)
 	if err != nil {
 		return nil, err
 	}
-
 	if form != "jpeg" {
 		return nil, errors.New("Image not a Jpeg")
 	}
@@ -53,10 +62,11 @@ func resolveHttpUrl(imageURL string) (image.Image, error) {
 	}
 	r, err := client.Do(req)
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Couldn't get Image from Source http response %v", r.Status)
+		return nil, fmt.Errorf("Couldn't get Image from Source, http response: %v", r.Status)
 	}
 	defer r.Body.Close()
-	img, form, err := image.Decode(r.Body)
+	buf := bufio.NewReaderSize(r.Body,256*1024)
+	img, form, err := image.Decode(buf)
 	if form != "jpeg" {
 		return nil, errors.New("Image Provided Not a Jpeg")
 	}

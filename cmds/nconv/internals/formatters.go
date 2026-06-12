@@ -16,7 +16,7 @@ func DisplayFormattedErrorMessage(msg string) {
 func DisplayFomattedMessageFromErr(err error) {
 	defer color.Unset()
 	errCol := color.New(color.FgRed, color.Bold)
-	errCol.Print(err.Error())
+	errCol.Println(err.Error())
 }
 
 func DisplayMessageWithColor(msg string, col color.Attribute, bold bool) {
@@ -30,8 +30,7 @@ func DisplayMessageWithColor(msg string, col color.Attribute, bold bool) {
 }
 
 func getFormmatedClickableLink(link string) string {
-	linkWithProtocol := "file://" + link
-	clickable := termlink.Link(link, linkWithProtocol)
+	clickable := termlink.Link(link,link)
 	defer color.Unset()
 	color.Set(color.Underline)
 	fmttedClickable := color.CyanString(clickable)
