@@ -13,7 +13,7 @@ import (
 )
 
 func GetImage(imageURL string) (image.Image, error) {
-	url, err := url.ParseRequestURI(imageURL)
+	url, err := url.Parse(imageURL)
 	if err != nil {
 		return nil, errors.New("Invalid URL")
 	}
